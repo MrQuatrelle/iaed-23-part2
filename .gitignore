@@ -1,0 +1,7 @@
+.cache
+.clang-format
+compile_commands.json
+enunciado.md
+main
+public-tests
+proj1
