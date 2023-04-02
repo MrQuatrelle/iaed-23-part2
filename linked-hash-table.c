@@ -79,20 +79,18 @@ void* lht_get_element(lht_t* self, const char* key) {
     return (self->raw[index]) ? self->raw[index]->value : NULL;
 }
 
-lht_node_t* lht_iterator_current = NULL;
-
 /*
- * linked-hash-table iterator. works similarly to strtok.
- * if given a table, it'll return, if it exists, the first element of the table.
- * if given a NULL, it'll give the next element of the previous iteration.
+ * linked-hash-table iterator.
  * returns a pointer to the next element or NULL if it reached the end.
+ * if used the BEGIN flag, it'll go to the beggining of the table.
+ * if used the KEEP flag, it'll keep going where from it was.
  */
-void* lht_iter(const lht_t* table) {
+void* lht_iter(lht_t* table, iter_setting setting) {
     lht_node_t* next;
-    if (!table)
-        next = lht_iterator_current->next;
+    if (setting == KEEP)
+        next = table->lht_iterator_current->next;
     else
         next = table->first;
-    lht_iterator_current = next;
+    table->lht_iterator_current = next;
     return (next) ? next->value : NULL;
 }

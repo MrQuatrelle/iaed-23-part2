@@ -27,7 +27,7 @@ __always_inline line_t* get_line(const char* name) {
  * lists all lines in the system.
  */
 void list_all_lines(void) {
-    line_t* current = lht_iter(lines);
+    line_t* current = lht_iter(lines, BEGIN);
     while(current) {
         printf("%s", current->name);
         if (current->origin && current->destination) {
@@ -37,7 +37,7 @@ void list_all_lines(void) {
         printf(" %d %.2f %.2f\n", current->num_stops, current->total_cost,
                current->total_duration);
 
-        current = lht_iter(NULL);
+        current = lht_iter(lines, KEEP);
     }
 }
 
@@ -137,12 +137,12 @@ void list_or_add_line(char* str) {
  * lists all the stops in the system.
  */
 void list_all_stops(void) {
-    stop_t* current = lht_iter(stops);
+    stop_t* current = lht_iter(stops, BEGIN);
     while (current) {
         printf("%s: %16.12f %16.12f %d\n", current->name,
                current->locale.latitude, current->locale.longitude,
                current->num_lines);
-        current = lht_iter(NULL);
+        current = lht_iter(stops, KEEP);
     }
 }
 
@@ -367,8 +367,8 @@ int intersects(const line_t* line, const stop_t* intersection) {
  * a single step of the i command.
  */
 void print_intersction(const stop_t* intersection) {
-    line_t* current;
     int i;
+    line_t* current = lht_iter(lines, BEGIN);
     int buffer_counter = 0;
     char** buffer = (char**)malloc(sizeof(char*) * line_counter);
     if (!buffer) {
@@ -379,13 +379,10 @@ void print_intersction(const stop_t* intersection) {
 
     printf("%s %d:", intersection->name, intersection->num_lines);
 
-    /* TODO: update this when iterator are created */
-    for (i = 0; i < INIT_HASH; i++) {
-        if (lines->raw[i]) {
-            current = (line_t*)lines->raw[i]->value;
-            if (intersects(current, intersection))
-                buffer[buffer_counter++] = current->name;
-        }
+    while (current) {
+        if (intersects(current, intersection))
+            buffer[buffer_counter++] = current->name;
+        current = lht_iter(lines, KEEP);
     }
     sort(buffer, buffer_counter);
 
@@ -401,18 +398,15 @@ void print_intersction(const stop_t* intersection) {
  * lists all the stops where lines intersect and those lines which intersect.
  */
 void list_interconnections(char* str) {
-    stop_t* current;
-    int i;
+    stop_t* current = lht_iter(stops, BEGIN);
     /* there are no arguments to the i command */
     (void)str;
 
     /* TODO: update this when iterator are created */
-    for (i = 0; i < INIT_HASH; i++) {
-        if (stops->raw[i]) {
-            current = (stop_t*)stops->raw[i]->value;
+    while(current) {
             if (current->num_lines > 1)
                 print_intersction(current);
-        }
+        current = lht_iter(stops, KEEP);
     }
 }
 

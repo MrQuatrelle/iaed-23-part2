@@ -19,11 +19,17 @@ typedef struct lht {
     size_t capacity;
     lht_node_t* first;
     lht_node_t* last;
+    lht_node_t* lht_iterator_current;
 } lht_t;
+
+typedef enum {
+    BEGIN,
+    KEEP
+} iter_setting;
 
 lht_t* lht_init();
 int lht_insert_new_element(lht_t* table, const char* key, void* value);
 void* lht_get_element(lht_t* self, const char* key);
-void* lht_iter(const lht_t* table);
+void* lht_iter(lht_t* table, iter_setting setting);
 
 #endif /* !LHT_HEADER */
