@@ -13,6 +13,7 @@ typedef struct lht_node {
     const char* key;
     void* value;
     struct lht_node* next;
+    struct lht_node* prev;
 } lht_node_t;
 
 typedef struct lht {
@@ -26,5 +27,6 @@ typedef struct lht {
 lht_t* lht_init();
 int lht_insert_new_element(lht_t* table, const char* key, void* value);
 void* lht_get_element(lht_t* self, const char* key);
+void* lht_iter(const lht_t* table);
 
 #endif /* !LHT_HEADER */

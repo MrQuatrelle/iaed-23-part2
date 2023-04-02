@@ -1,5 +1,12 @@
 #ifndef MAIN_HEADER
 
+#include "linked-hash-table.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <sys/cdefs.h>
+
 #define STOP_NAME_LENGTH 50
 #define LINE_NAME_LENGTH 20
 

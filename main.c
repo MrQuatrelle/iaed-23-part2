@@ -1,10 +1,4 @@
 #include "main.h"
-#include "linked-hash-table.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <strings.h>
-#include <sys/cdefs.h>
 
 lht_t* lines;
 lht_t* stops;
