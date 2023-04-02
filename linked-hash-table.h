@@ -1,10 +1,7 @@
 #ifndef LHT_HEADER
-#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
-#include <sys/cdefs.h>
 
 /* just a decently large prime number */
 #define INIT_HASH 65537

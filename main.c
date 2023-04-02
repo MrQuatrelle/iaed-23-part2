@@ -1,4 +1,5 @@
 #include "main.h"
+#include "linked-hash-table.h"
 
 lht_t* lines;
 lht_t* stops;
@@ -39,6 +40,7 @@ void list_all_lines(void) {
         current = lht_iter(NULL);
     }
 }
+
 /*
  * lists the stops in the given line.
  */
@@ -135,15 +137,12 @@ void list_or_add_line(char* str) {
  * lists all the stops in the system.
  */
 void list_all_stops(void) {
-    stop_t* current;
-    int i;
-    for (i = 0; i < INIT_HASH; i++) {
-        if (!(stops->raw[i]))
-            continue;
-        current = (stops->raw[i])->value;
+    stop_t* current = lht_iter(stops);
+    while (current) {
         printf("%s: %16.12f %16.12f %d\n", current->name,
                current->locale.latitude, current->locale.longitude,
                current->num_lines);
+        current = lht_iter(NULL);
     }
 }
 

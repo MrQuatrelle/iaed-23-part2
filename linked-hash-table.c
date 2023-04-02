@@ -1,5 +1,4 @@
 #include "linked-hash-table.h"
-#include <strings.h>
 
 /* TODO:
  * 1 - Create an iterator (strtok-like).
