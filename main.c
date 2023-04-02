@@ -6,8 +6,8 @@
 #include <strings.h>
 #include <sys/cdefs.h>
 
-void** lines;
-void** stops;
+lht_t* lines;
+lht_t* stops;
 
 int stop_counter = 0;
 int line_counter = 0;
@@ -17,7 +17,7 @@ int line_counter = 0;
  * returns NULL if the stop doesn't exit.
  */
 __always_inline stop_t* get_stop(const char* name) {
-    return (stop_t*) get_element(stops, name);
+    return (stop_t*)lht_get_element(stops, name);
 }
 
 /*
@@ -25,7 +25,7 @@ __always_inline stop_t* get_stop(const char* name) {
  * returns NULL if it does not exist.
  */
 __always_inline line_t* get_line(const char* name) {
-    return (line_t*) get_element(lines, name);
+    return (line_t*)lht_get_element(lines, name);
 }
 
 /*
@@ -37,10 +37,9 @@ void list_all_lines(void) {
     line_t* current;
     int i;
     for (i = 0; i < INIT_HASH; i++) {
-        if (!lines[i])
+        if (!(lines->raw[i]))
             continue;
-        current = ((lht_node_t*)lines[i])->value;
-        printf("here\n");
+        current = lines->raw[i]->value;
         printf("%s", current->name);
         if (current->origin && current->destination) {
             printf(" %s %s", current->origin->raw->name,
@@ -147,12 +146,15 @@ void list_or_add_line(char* str) {
  * lists all the stops in the system.
  */
 void list_all_stops(void) {
-    stop_t* curr;
+    stop_t* current;
     int i;
-    for (i = 0; i < stop_counter; i++) {
-        curr = stops[i];
-        printf("%s: %16.12f %16.12f %d\n", curr->name, curr->locale.latitude,
-               curr->locale.longitude, curr->num_lines);
+    for (i = 0; i < INIT_HASH; i++) {
+        if (!(stops->raw[i]))
+            continue;
+        current = (stops->raw[i])->value;
+        printf("%s: %16.12f %16.12f %d\n", current->name,
+               current->locale.latitude, current->locale.longitude,
+               current->num_lines);
     }
 }
 
@@ -189,8 +191,7 @@ int add_new_stop(const char* name, const double latitude,
     new->locale.longitude = longitude;
     new->num_lines = 0;
 
-    stops[stop_counter] = new;
-    stop_counter++;
+    lht_insert_new_element(stops, new->name, new);
     return 0;
 }
 
@@ -390,10 +391,13 @@ void print_intersction(const stop_t* intersection) {
 
     printf("%s %d:", intersection->name, intersection->num_lines);
 
-    for (i = 0; i < line_counter; i++) {
-        current = lines[i];
-        if (intersects(lines[i], intersection))
-            buffer[buffer_counter++] = current->name;
+    /* TODO: update this when iterator are created */
+    for (i = 0; i < INIT_HASH; i++) {
+        if (lines->raw[i]) {
+            current = (line_t*)lines->raw[i]->value;
+            if (intersects(current, intersection))
+                buffer[buffer_counter++] = current->name;
+        }
     }
     sort(buffer, buffer_counter);
 
@@ -414,20 +418,21 @@ void list_interconnections(char* str) {
     /* there are no arguments to the i command */
     (void)str;
 
-    for (i = 0; i < stop_counter; i++) {
-        current = stops[i];
-        if (current)
+    /* TODO: update this when iterator are created */
+    for (i = 0; i < INIT_HASH; i++) {
+        if (stops->raw[i]) {
+            current = (stop_t*)stops->raw[i]->value;
             if (current->num_lines > 1)
                 print_intersction(current);
+        }
     }
 }
 
 int main(void) {
     char *buffer, *buffer_offset;
     int exit = 0;
-    /* HACK: remove casts! */
-    lines = linked_hash_table_init();
-    stops = linked_hash_table_init();
+    lines = lht_init();
+    stops = lht_init();
     if (!lines || !stops) {
         if (lines)
             free(lines);
