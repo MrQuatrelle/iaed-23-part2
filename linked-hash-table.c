@@ -95,5 +95,5 @@ void* lht_iter(const lht_t* table) {
     else
         next = table->first;
     lht_iterator_current = next;
-    return next->value;
+    return (next) ? next->value : NULL;
 }

@@ -24,16 +24,10 @@ __always_inline line_t* get_line(const char* name) {
 
 /*
  * lists all lines in the system.
- *
- * TODO: adapt after creating the iterator for the lht
  */
 void list_all_lines(void) {
-    line_t* current;
-    int i;
-    for (i = 0; i < INIT_HASH; i++) {
-        if (!(lines->raw[i]))
-            continue;
-        current = lines->raw[i]->value;
+    line_t* current = lht_iter(lines);
+    while(current) {
         printf("%s", current->name);
         if (current->origin && current->destination) {
             printf(" %s %s", current->origin->raw->name,
@@ -41,9 +35,10 @@ void list_all_lines(void) {
         }
         printf(" %d %.2f %.2f\n", current->num_stops, current->total_cost,
                current->total_duration);
+
+        current = lht_iter(NULL);
     }
 }
-
 /*
  * lists the stops in the given line.
  */
