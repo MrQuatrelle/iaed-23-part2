@@ -3,10 +3,6 @@
 #define STOP_NAME_LENGTH 50
 #define LINE_NAME_LENGTH 20
 
-#define MAX_LINES 200
-#define MAX_STOPS 10000
-#define MAX_CONNECTIONS 30000
-
 #define DELIMITERS " \t\n"
 #define INVERT "inverso"
 
@@ -35,10 +31,5 @@ typedef struct line {
     double total_duration;
     int num_stops;
 } line_t;
-
-void list_or_add_lines(char* str);
-void list_or_add_stops(char* str);
-void add_connection(char* str);
-void list_interconnections(char* str);
 
 #endif /* !MAIN_HEADER */

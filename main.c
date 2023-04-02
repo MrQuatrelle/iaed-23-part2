@@ -1,12 +1,13 @@
 #include "main.h"
+#include "linked-hash-table.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 #include <sys/cdefs.h>
 
-line_t** lines;
-stop_t** stops;
+void** lines;
+void** stops;
 
 int stop_counter = 0;
 int line_counter = 0;
@@ -15,43 +16,38 @@ int line_counter = 0;
  * returns a pointer to the stop with the given name.
  * returns NULL if the stop doesn't exit.
  */
-stop_t* get_stop(const char* name) {
-    int i;
-    for (i = 0; i < stop_counter; i++) {
-        if (!strcmp(stops[i]->name, name))
-            return stops[i];
-    }
-    return NULL;
+__always_inline stop_t* get_stop(const char* name) {
+    return (stop_t*) get_element(stops, name);
 }
 
 /*
  * get the line identied by the given name.
  * returns NULL if it does not exist.
  */
-line_t* get_line(const char* name) {
-    int i;
-    for (i = line_counter - 1; i >= 0; i--) {
-        if (!strcmp(lines[i]->name, name))
-            return lines[i];
-    }
-    return NULL;
+__always_inline line_t* get_line(const char* name) {
+    return (line_t*) get_element(lines, name);
 }
 
 /*
  * lists all lines in the system.
+ *
+ * TODO: adapt after creating the iterator for the lht
  */
 void list_all_lines(void) {
+    line_t* current;
     int i;
-    for (i = 0; i < line_counter; i++) {
-        printf("%s", lines[i]->name);
-        if (lines[i]) {
-            if (lines[i]->origin && lines[i]->destination) {
-                printf(" %s %s", lines[i]->origin->raw->name,
-                       lines[i]->destination->raw->name);
-            }
-            printf(" %d %.2f %.2f\n", lines[i]->num_stops, lines[i]->total_cost,
-                   lines[i]->total_duration);
+    for (i = 0; i < INIT_HASH; i++) {
+        if (!lines[i])
+            continue;
+        current = ((lht_node_t*)lines[i])->value;
+        printf("here\n");
+        printf("%s", current->name);
+        if (current->origin && current->destination) {
+            printf(" %s %s", current->origin->raw->name,
+                   current->destination->raw->name);
         }
+        printf(" %d %.2f %.2f\n", current->num_stops, current->total_cost,
+               current->total_duration);
     }
 }
 
@@ -74,6 +70,8 @@ void list_single_line(line_t* line) {
 
 /*
  * same as list_single_line() but inverted.
+ * TODO: Change this for new hash table.
+ * (missing getters)
  */
 void list_single_line_inverted(line_t* line) {
     stop_node_t* current = line->destination;
@@ -90,18 +88,24 @@ void list_single_line_inverted(line_t* line) {
 }
 
 void add_new_line(const char* name) {
-    if (!(lines[line_counter] = (line_t*)malloc(sizeof(line_t)))) {
+    line_t* new;
+    if (!(new = (line_t*)malloc(sizeof(line_t)))) {
         printf("couldn't get memory for the new line!\n");
         fprintf(stderr, "maybe this should panic instead\n");
         return;
     }
 
-    strcpy(lines[line_counter]->name, name);
-    lines[line_counter]->total_cost = 0;
-    lines[line_counter]->total_duration = 0;
-    lines[line_counter]->origin = NULL;
-    lines[line_counter]->destination = NULL;
-    line_counter++;
+    /*
+     * TODO: remove the cast after changing type to void**.
+     * It'll only happen after getters.
+     */
+    strcpy(new->name, name);
+    new->origin = NULL;
+    new->destination = NULL;
+    new->num_stops = 0;
+    new->total_cost = 0;
+    new->total_duration = 0;
+    insert_new_element(lines, new->name, new);
 }
 
 /*
@@ -143,11 +147,12 @@ void list_or_add_line(char* str) {
  * lists all the stops in the system.
  */
 void list_all_stops(void) {
+    stop_t* curr;
     int i;
     for (i = 0; i < stop_counter; i++) {
-        printf("%s: %16.12f %16.12f %d\n", stops[i]->name,
-               stops[i]->locale.latitude, stops[i]->locale.longitude,
-               stops[i]->num_lines);
+        curr = stops[i];
+        printf("%s: %16.12f %16.12f %d\n", curr->name, curr->locale.latitude,
+               curr->locale.longitude, curr->num_lines);
     }
 }
 
@@ -169,20 +174,22 @@ int list_single_stop(char* name) {
  */
 int add_new_stop(const char* name, const double latitude,
                  const double longitude) {
+    stop_t* new;
     if (get_stop(name))
         return -1;
 
-    if (!(stops[stop_counter] = (stop_t*)malloc(sizeof(stop_t)))) {
+    if (!(new = malloc(sizeof(stop_t)))) {
         printf("couldn't get memory for the new stop!\n");
         fprintf(stderr, "maybe this should panic instead\n");
         return 0;
     }
 
-    strcpy(stops[stop_counter]->name, name);
-    stops[stop_counter]->locale.latitude = latitude;
-    stops[stop_counter]->locale.longitude = longitude;
-    stops[stop_counter]->num_lines = 0;
+    strcpy(new->name, name);
+    new->locale.latitude = latitude;
+    new->locale.longitude = longitude;
+    new->num_lines = 0;
 
+    stops[stop_counter] = new;
     stop_counter++;
     return 0;
 }
@@ -273,6 +280,15 @@ void add_connection(char* str) {
     if (!line->origin && !line->destination) {
         line->origin = (stop_node_t*)malloc(sizeof(stop_node_t));
         line->destination = (stop_node_t*)malloc(sizeof(stop_node_t));
+        if (!line->origin || !line->destination) {
+            if (line->origin)
+                free(line->origin);
+            if (line->destination)
+                free(line->destination);
+            printf("couldn't get memory for the new stop node!\n");
+            fprintf(stderr, "maybe this should panic instead\n");
+            return;
+        }
         line->origin->next = line->destination;
         line->origin->prev = NULL;
         line->destination->prev = line->origin;
@@ -296,6 +312,11 @@ void add_connection(char* str) {
 
     if (line->destination->raw == origin) {
         tmp = (stop_node_t*)malloc(sizeof(stop_node_t));
+        if (!tmp) {
+            printf("couldn't get memory for the new stop node!\n");
+            fprintf(stderr, "maybe this should panic instead\n");
+            return;
+        }
         tmp->prev = line->destination;
         tmp->next = NULL;
         tmp->raw = destination;
@@ -305,6 +326,11 @@ void add_connection(char* str) {
             destination->num_lines++;
     } else {
         tmp = (stop_node_t*)malloc(sizeof(stop_node_t));
+        if (!tmp) {
+            printf("couldn't get memory for the new stop node!\n");
+            fprintf(stderr, "maybe this should panic instead\n");
+            return;
+        }
         tmp->next = line->origin;
         tmp->prev = NULL;
         tmp->raw = origin;
@@ -352,15 +378,22 @@ int intersects(const line_t* line, const stop_t* intersection) {
  * a single step of the i command.
  */
 void print_intersction(const stop_t* intersection) {
+    line_t* current;
     int i;
     int buffer_counter = 0;
     char** buffer = (char**)malloc(sizeof(char*) * line_counter);
+    if (!buffer) {
+        printf("couldn't get memory for the string array (sorting)!\n");
+        fprintf(stderr, "maybe this should panic instead\n");
+        return;
+    }
 
     printf("%s %d:", intersection->name, intersection->num_lines);
 
     for (i = 0; i < line_counter; i++) {
+        current = lines[i];
         if (intersects(lines[i], intersection))
-            buffer[buffer_counter++] = lines[i]->name;
+            buffer[buffer_counter++] = current->name;
     }
     sort(buffer, buffer_counter);
 
@@ -376,23 +409,41 @@ void print_intersction(const stop_t* intersection) {
  * lists all the stops where lines intersect and those lines which intersect.
  */
 void list_interconnections(char* str) {
+    stop_t* current;
     int i;
     /* there are no arguments to the i command */
     (void)str;
 
     for (i = 0; i < stop_counter; i++) {
-        if (stops[i])
-            if (stops[i]->num_lines > 1)
-                print_intersction(stops[i]);
+        current = stops[i];
+        if (current)
+            if (current->num_lines > 1)
+                print_intersction(current);
     }
 }
 
 int main(void) {
-    lines = (line_t**)malloc(sizeof(line_t*) * MAX_LINES);
-    stops = (stop_t**)malloc(sizeof(line_t*) * MAX_STOPS);
-    char* buffer = (char*)malloc(sizeof(char) * BUFSIZ);
-    char* buffer_offset = buffer;
+    char *buffer, *buffer_offset;
     int exit = 0;
+    /* HACK: remove casts! */
+    lines = linked_hash_table_init();
+    stops = linked_hash_table_init();
+    if (!lines || !stops) {
+        if (lines)
+            free(lines);
+        if (stops)
+            free(stops);
+        printf("couldn't get memory for the new hash tables!\n");
+        fprintf(stderr, "maybe this should panic instead\n");
+        return 1;
+    }
+    buffer = (char*)malloc(sizeof(char) * BUFSIZ);
+    if (!buffer) {
+        printf("couldn't get memory for the new hash tables!\n");
+        fprintf(stderr, "maybe this should panic instead\n");
+    }
+
+    buffer_offset = buffer;
 
     buffer_offset++;
     while (!exit) {
