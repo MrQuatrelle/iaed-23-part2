@@ -42,7 +42,7 @@ unsigned long calculate_hash(const char* str) {
  * of the value).
  * WARNING: optimistic: assumes there will never be any collisions.
  */
-int insert_new_element(void** self, const char* key, void* value) {
+int lht_insert_new_element(void** self, const char* key, void* value) {
     unsigned long index = calculate_hash(key);
     lht_node_t* new = malloc(sizeof(lht_node_t));
     if (!new) {

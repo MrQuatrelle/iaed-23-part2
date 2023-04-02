@@ -9,7 +9,7 @@ typedef struct lht_node {
     struct lht_node* next;
 } lht_node_t;
 
-int insert_new_element(void** table, const char* key, void* value);
+int lht_insert_new_element(void** table, const char* key, void* value);
 void** linked_hash_table_init();
 void* get_element(void** self, const char* key);
 

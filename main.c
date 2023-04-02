@@ -105,7 +105,7 @@ void add_new_line(const char* name) {
     new->num_stops = 0;
     new->total_cost = 0;
     new->total_duration = 0;
-    insert_new_element(lines, new->name, new);
+    lht_insert_new_element(lines, new->name, new);
 }
 
 /*
