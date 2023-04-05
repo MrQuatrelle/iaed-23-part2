@@ -6,6 +6,7 @@
 
 #define STOP_NAME_LENGTH 50
 #define LINE_NAME_LENGTH 20
+#define MAX_INPUT 65535
 
 #define DELIMITERS " \t\n"
 #define INVERT "inverso"

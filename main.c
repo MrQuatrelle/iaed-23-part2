@@ -424,7 +424,7 @@ int main(void) {
         fprintf(stderr, "maybe this should panic instead\n");
         return 1;
     }
-    buffer = (char*)malloc(sizeof(char) * BUFSIZ);
+    buffer = (char*)malloc(sizeof(char) * MAX_INPUT);
     if (!buffer) {
         printf("couldn't get memory for the new hash tables!\n");
         fprintf(stderr, "maybe this should panic instead\n");

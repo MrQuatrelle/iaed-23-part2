@@ -1,9 +1,7 @@
 #include "linked-hash-table.h"
 
 /* TODO:
- * 1 - Create an iterator (strtok-like).
- *  1.1 - Change everything on the main to use it.
- * 2 - Delete functions (by key or all).
+ * 1 - Delete functions (by key or all).
  */
 
 lht_t* lht_init() {
@@ -59,8 +57,10 @@ int lht_insert_new_element(lht_t* self, const char* key, void* value) {
     new->key = key;
     new->value = value;
 
+    /* adding to the hash table */
     self->raw[index] = new;
 
+    /* and linking */
     if (!self->first) {
         self->first = self->last = new;
         new->prev = NULL;
