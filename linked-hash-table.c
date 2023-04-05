@@ -1,4 +1,6 @@
 #include "linked-hash-table.h"
+#include <stddef.h>
+#include <strings.h>
 
 /* TODO:
  * 1 - Delete functions (by key or all).
@@ -42,14 +44,14 @@ unsigned long calculate_hash(const char* str) {
  * of the value).
  * WARNING: optimistic: assumes there will never be any collisions.
  */
-int lht_insert_new_element(lht_t* self, const char* key, void* value) {
-    unsigned long index = calculate_hash(key);
+int lht_insert_element(lht_t* self, const char* key, void* value) {
+    unsigned long i = calculate_hash(key);
     lht_node_t* new = malloc(sizeof(lht_node_t));
     if (!new) {
         fprintf(stderr, "couldn't get memory for the new hash table node!\n");
         return -1;
     }
-    if (self->raw[index]) {
+    if (self->raw[i]) {
         fprintf(stderr, "TODO not messing with collisions for now!\n");
         return -1;
     }
@@ -58,7 +60,8 @@ int lht_insert_new_element(lht_t* self, const char* key, void* value) {
     new->value = value;
 
     /* adding to the hash table */
-    self->raw[index] = new;
+    self->raw[i] = new;
+    self->size++;
 
     /* and linking */
     if (!self->first) {
@@ -74,10 +77,38 @@ int lht_insert_new_element(lht_t* self, const char* key, void* value) {
     return 0;
 }
 
-void* lht_get_element(lht_t* self, const char* key) {
-    unsigned long index = calculate_hash(key);
-    return (self->raw[index]) ? self->raw[index]->value : NULL;
+/*
+ * removes the entry from the lht.
+ * returns a pointer to the value.
+ */
+void* lht_leak_element(lht_t* self, const char* key) {
+    unsigned long i = calculate_hash(key);
+    void* value;
+    if (!self->raw[i])
+        return NULL;
+
+    value = self->raw[i]->value;
+    if (self->raw[i]->next)
+        self->raw[i]->next->prev = self->raw[i]->prev;
+    if (self->raw[i]->prev)
+        self->raw[i]->prev->next = self->raw[i]->next;
+    free(self->raw[i]);
+    self->raw[i] = NULL;
+
+    if (--self->size == 0) {
+        self->first = NULL;
+        self->last = NULL;
+    }
+
+    return value;
 }
+
+void* lht_get_element(lht_t* self, const char* key) {
+    unsigned long i = calculate_hash(key);
+    return (self->raw[i]) ? self->raw[i]->value : NULL;
+}
+
+size_t lht_get_size(lht_t* self) { return self->size; }
 
 /*
  * linked-hash-table iterator.

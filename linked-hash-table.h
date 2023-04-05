@@ -28,8 +28,10 @@ typedef enum {
 } iter_setting;
 
 lht_t* lht_init();
-int lht_insert_new_element(lht_t* table, const char* key, void* value);
+int lht_insert_element(lht_t* table, const char* key, void* value);
+void* lht_leak_element(lht_t* self, const char* key);
 void* lht_get_element(lht_t* self, const char* key);
 void* lht_iter(lht_t* table, iter_setting setting);
+size_t lht_get_size(lht_t* self);
 
 #endif /* !LHT_HEADER */

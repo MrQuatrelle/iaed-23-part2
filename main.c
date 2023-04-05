@@ -4,9 +4,6 @@
 lht_t* lines;
 lht_t* stops;
 
-int stop_counter = 0;
-int line_counter = 0;
-
 /*
  * returns a pointer to the stop with the given name.
  * returns NULL if the stop doesn't exit.
@@ -24,11 +21,41 @@ __always_inline line_t* get_line(const char* name) {
 }
 
 /*
+ * simple bubble sort for sorting a list of strings.
+ */
+void sort(char** list, int size) {
+    int i, j;
+    char* temp;
+    for (i = 0; i < size - 1; i++) {
+        for (j = 0; j < size - i - 1; j++) {
+            if (strcmp(list[j], list[j + 1]) > 0) {
+                temp = list[j];
+                list[j] = list[j + 1];
+                list[j + 1] = temp;
+            }
+        }
+    }
+}
+
+/*
+ * checks if a given line has the given stop.
+ */
+int intersects(const line_t* line, const stop_t* intersection) {
+    stop_node_t* current = line->origin;
+    while (current) {
+        if (!strcmp(current->raw->name, intersection->name))
+            return 1;
+        current = current->next;
+    }
+    return 0;
+}
+
+/*
  * lists all lines in the system.
  */
 void list_all_lines(void) {
     line_t* current = lht_iter(lines, BEGIN);
-    while(current) {
+    while (current) {
         printf("%s", current->name);
         if (current->origin && current->destination) {
             printf(" %s %s", current->origin->raw->name,
@@ -77,6 +104,13 @@ void list_single_line_inverted(line_t* line) {
     printf("\n");
 }
 
+void stop_dll_destroy(stop_node_t* origin) {
+    if (!origin)
+        return;
+    stop_dll_destroy(origin->next);
+    free(origin);
+}
+
 void add_new_line(const char* name) {
     line_t* new;
     if (!(new = (line_t*)malloc(sizeof(line_t)))) {
@@ -95,7 +129,7 @@ void add_new_line(const char* name) {
     new->num_stops = 0;
     new->total_cost = 0;
     new->total_duration = 0;
-    lht_insert_new_element(lines, new->name, new);
+    lht_insert_element(lines, new->name, new);
 }
 
 /*
@@ -131,6 +165,23 @@ void list_or_add_line(char* str) {
 
     /* else add it */
     add_new_line(token);
+}
+
+void remove_line(char* str) {
+    line_t* line;
+    char* name = strtok(str, DELIMITERS);
+
+    if (!(line = (line_t*)lht_leak_element(lines, name))) {
+        printf("%s: no such line\n", name);
+        return;
+    }
+
+    stop_dll_destroy(line->origin);
+
+    /* TODO:
+     * free(line->name);
+     */
+    free(line);
 }
 
 /*
@@ -179,7 +230,7 @@ int add_new_stop(const char* name, const double latitude,
     new->locale.longitude = longitude;
     new->num_lines = 0;
 
-    lht_insert_new_element(stops, new->name, new);
+    lht_insert_element(stops, new->name, new);
     return 0;
 }
 
@@ -188,7 +239,7 @@ int add_new_stop(const char* name, const double latitude,
  * receives a string which corresponds to the arguments of the command.
  * parsed with strtok (destructive).
  */
-void list_or_add_stops(char* str) {
+void list_or_add_stop(char* str) {
     char* token;
     char* name;
 
@@ -225,8 +276,65 @@ void get_c_input(const char* input, char* line_name, char* origin_name,
         sscanf(input, "%s %s %s %lf %lf", line_name, origin_name,
                destination_name, cost, duration);
 }
+
+void unlink_stop(line_t* line, stop_t* stop) {
+    stop_node_t* current;
+    if (stop == line->origin->raw) {
+        current = line->origin->next;
+        line->total_cost -= current->cost;
+        line->total_duration -= current->duration;
+        free(line->origin);
+        current->cost = 0;
+        current->duration = 0;
+        line->origin = current;
+        return;
+    }
+    if (stop == line->destination->raw) {
+        current = line->destination->prev;
+        line->total_cost -= line->destination->cost;
+        line->total_duration -= line->destination->duration;
+        free(line->destination);
+        current->next = NULL;
+        line->destination = current;
+        return;
+    }
+
+    /* we've already tested origin */
+    current = line->origin->next;
+    while (current) {
+        if (current->raw == stop) {
+            current->next->prev = current->prev;
+            current->prev->next = current->next;
+            current->raw->num_lines--;
+            free(current);
+            return;
+        }
+        current = current->next;
+    }
+}
+
+void remove_stop(char* str) {
+    char name[MAX_INPUT];
+    stop_t* stop;
+    line_t* current;
+
+    if (!sscanf(str, " \"%[^\"]\"", name))
+        sscanf(str, " %s", name);
+
+    if (!(stop = lht_leak_element(stops, name))) {
+        printf("%s: no such stop.\n", name);
+        return;
+    }
+
+    current = lht_iter(lines, BEGIN);
+    while (current) {
+        unlink_stop(current, stop);
+        current = lht_iter(lines, KEEP);
+    }
+}
+
 /*
- * l function.
+ * l command.
  * adds a stop (or two in case they are the first) to a line.
  * receives a string with the arguments of the command.
  */
@@ -284,13 +392,17 @@ void add_connection(char* str) {
         line->destination->next = NULL;
 
         line->origin->raw = origin;
+        line->origin->cost = line->origin->duration = 0;
+
         line->destination->raw = destination;
+        line->destination->cost = cost;
+        line->destination->duration = duration;
 
         line->total_cost += cost;
         line->total_duration += duration;
         line->num_stops = 2;
         origin->num_lines++;
-        destination->num_lines++;
+        destination->num_lines += (origin != destination);
         return;
     }
 
@@ -309,6 +421,8 @@ void add_connection(char* str) {
         tmp->prev = line->destination;
         tmp->next = NULL;
         tmp->raw = destination;
+        tmp->cost = cost;
+        tmp->duration = duration;
         line->destination->next = tmp;
         line->destination = tmp;
         if (line->origin->raw != destination)
@@ -323,6 +437,9 @@ void add_connection(char* str) {
         tmp->next = line->origin;
         tmp->prev = NULL;
         tmp->raw = origin;
+        tmp->cost = tmp->duration = 0;
+        line->origin->cost = cost;
+        line->origin->duration = duration;
         line->origin->prev = tmp;
         line->origin = tmp;
         origin->num_lines++;
@@ -334,43 +451,13 @@ void add_connection(char* str) {
 }
 
 /*
- * simple bubble sort for sorting a list of strings.
- */
-void sort(char** list, int size) {
-    int i, j;
-    char* temp;
-    for (i = 0; i < size - 1; i++) {
-        for (j = 0; j < size - i - 1; j++) {
-            if (strcmp(list[j], list[j + 1]) > 0) {
-                temp = list[j];
-                list[j] = list[j + 1];
-                list[j + 1] = temp;
-            }
-        }
-    }
-}
-
-/*
- * checks if a given line has the given stop.
- */
-int intersects(const line_t* line, const stop_t* intersection) {
-    stop_node_t* current = line->origin;
-    while (current) {
-        if (!strcmp(current->raw->name, intersection->name))
-            return 1;
-        current = current->next;
-    }
-    return 0;
-}
-
-/*
  * a single step of the i command.
  */
 void print_intersction(const stop_t* intersection) {
     int i;
     line_t* current = lht_iter(lines, BEGIN);
     int buffer_counter = 0;
-    char** buffer = (char**)malloc(sizeof(char*) * line_counter);
+    char** buffer = (char**)malloc(sizeof(char*) * lht_get_size(lines));
     if (!buffer) {
         printf("couldn't get memory for the string array (sorting)!\n");
         fprintf(stderr, "maybe this should panic instead\n");
@@ -403,9 +490,9 @@ void list_interconnections(char* str) {
     (void)str;
 
     /* TODO: update this when iterator are created */
-    while(current) {
-            if (current->num_lines > 1)
-                print_intersction(current);
+    while (current) {
+        if (current->num_lines > 1)
+            print_intersction(current);
         current = lht_iter(stops, KEEP);
     }
 }
@@ -442,8 +529,14 @@ int main(void) {
         case 'c':
             list_or_add_line(buffer_offset);
             break;
+        case 'r':
+            remove_line(buffer_offset);
+            break;
         case 'p':
-            list_or_add_stops(buffer_offset);
+            list_or_add_stop(buffer_offset);
+            break;
+        case 'e':
+            remove_stop(buffer_offset);
             break;
         case 'l':
             add_connection(buffer_offset);

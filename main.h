@@ -26,6 +26,8 @@ typedef struct stop_node {
     stop_t* raw;
     struct stop_node* next;
     struct stop_node* prev;
+    double cost;
+    double duration;
 } stop_node_t;
 
 typedef struct line {
