@@ -6,21 +6,21 @@
 /* just a decently large prime number */
 #define INIT_HASH 216091
 
-typedef struct lht_node {
+typedef struct lht_entry {
     const char* key;
     void* value;
-    struct lht_node* next;
-    struct lht_node* prev;
+    struct lht_entry* next;
+    struct lht_entry* prev;
     unsigned long i;
-} lht_node_t;
+} lht_entry_t;
 
 typedef struct lht {
-    lht_node_t** raw;
+    lht_entry_t** raw;
     size_t size;
     size_t capacity;
-    lht_node_t* first;
-    lht_node_t* last;
-    lht_node_t* lht_iterator_current;
+    lht_entry_t* first;
+    lht_entry_t* last;
+    lht_entry_t* lht_iterator_current;
 } lht_t;
 
 typedef enum {
