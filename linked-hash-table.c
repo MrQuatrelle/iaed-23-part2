@@ -43,7 +43,7 @@ void lht_destroy(lht_t* self) {
 /*
  * hash function for a string (djb2)
  */
-size_t calculate_hash(const char* str) {
+size_t calculate_hash2(const char* str) {
     unsigned long hash = 5381;
     int c;
 
@@ -53,14 +53,38 @@ size_t calculate_hash(const char* str) {
     return hash % INIT_HASH;
 }
 
+size_t calculate_hash1(const char* str) {
+        unsigned long hash = 0;
+        int c;
+
+        while ((c = *str++))
+            hash = hash * 31 + c;
+
+    return hash % INIT_HASH;
+}
+
+__always_inline size_t rehash(const char* str, const size_t prev, int round) {
+    return (prev + round * calculate_hash2(str)) % INIT_HASH;
+}
+
 __always_inline ssize_t lht_get_index(lht_t* self, const char* key) {
-    size_t i = calculate_hash(key);
-    for (; i < self->capacity; i++)
-        if (self->raw[i])
-            if (!strcmp(self->raw[i]->key, key))
-                return (ssize_t)i;
+    size_t init, i;
+    int round = 1;
+    init = i = calculate_hash1(key);
+    while (self->raw[i]) {
+        if (!strcmp(self->raw[i]->key, key))
+            return i;
+        i = rehash(key, init, round);
+        round++;
+    }
 
     return -1;
+}
+
+void* lht_get_element(lht_t* self, const char* key) {
+    ssize_t i = lht_get_index(self, key);
+
+    return (i >= 0) ? self->raw[i]->value : NULL;
 }
 
 /*
@@ -69,14 +93,18 @@ __always_inline ssize_t lht_get_index(lht_t* self, const char* key) {
  * of the value).
  */
 int lht_insert_element(lht_t* self, const char* key, void* value) {
-    size_t i = (size_t)calculate_hash(key);
+    size_t init, i;
     lht_node_t* new = malloc(sizeof(lht_node_t));
+    int round = 1;
+    init = i = (size_t)calculate_hash1(key);
     if (!new) {
         fprintf(stderr, "couldn't get memory for the new hash table node!\n");
         return -1;
     }
-    while (self->raw[i])
-        i = (i + 1) % self->capacity;
+    while (self->raw[i]) {
+        i = rehash(key, init, round);
+        round++;
+    }
 
     new->i = i;
     new->key = key;
@@ -132,12 +160,6 @@ void* lht_leak_element(lht_t* self, const char* key) {
     }
 
     return value;
-}
-
-void* lht_get_element(lht_t* self, const char* key) {
-    ssize_t i = lht_get_index(self, key);
-
-    return (i >= 0) ? self->raw[i]->value : NULL;
 }
 
 size_t lht_get_size(lht_t* self) { return self->size; }
