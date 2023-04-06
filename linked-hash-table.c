@@ -1,6 +1,9 @@
 #include "linked-hash-table.h"
 #include <stddef.h>
+#include <string.h>
 #include <strings.h>
+#include <sys/cdefs.h>
+#include <sys/types.h>
 
 /* TODO:
  * 1 - Delete functions (by key or all).
@@ -8,6 +11,7 @@
 
 lht_t* lht_init() {
     lht_t* new = (lht_t*)malloc(sizeof(lht_t));
+    int i;
     if (!new) {
         fprintf(stderr, "couldn't get memory for the new hash table!\n");
         return NULL;
@@ -16,6 +20,9 @@ lht_t* lht_init() {
     if (!new->raw) {
         fprintf(stderr, "couldn't get memory for the new hash table!\n");
         return NULL;
+    }
+    for (i = 0; i < INIT_HASH; i++) {
+        new->raw[i] = NULL;
     }
     memset(new->raw, 0, sizeof(void*) * INIT_HASH);
     new->size = 0;
@@ -28,7 +35,7 @@ lht_t* lht_init() {
 void lht_destroy(lht_t* self) {
     if (!self)
         return;
-    
+
     free(self->raw);
     free(self);
 }
@@ -36,7 +43,7 @@ void lht_destroy(lht_t* self) {
 /*
  * hash function for a string (djb2)
  */
-unsigned long calculate_hash(const char* str) {
+size_t calculate_hash(const char* str) {
     unsigned long hash = 5381;
     int c;
 
@@ -46,23 +53,30 @@ unsigned long calculate_hash(const char* str) {
     return hash % INIT_HASH;
 }
 
+__always_inline ssize_t lht_get_index(lht_t* self, const char* key) {
+    size_t i = calculate_hash(key);
+    for (; i < self->capacity; i++)
+        if (self->raw[i])
+            if (!strcmp(self->raw[i]->key, key))
+                return (ssize_t)i;
+
+    return -1;
+}
+
 /*
  * insert a new element into the linked hash table.
  * key must have the same lifetime as the value (e.g. a pointer to an attribute
  * of the value).
- * WARNING: optimistic: assumes there will never be any collisions.
  */
 int lht_insert_element(lht_t* self, const char* key, void* value) {
-    unsigned long i = calculate_hash(key);
+    size_t i = (size_t)calculate_hash(key);
     lht_node_t* new = malloc(sizeof(lht_node_t));
     if (!new) {
         fprintf(stderr, "couldn't get memory for the new hash table node!\n");
         return -1;
     }
-    if (self->raw[i]) {
-        fprintf(stderr, "TODO not messing with collisions for now!\n");
-        return -1;
-    }
+    while (self->raw[i])
+        i = (i + 1) % self->capacity;
 
     new->i = i;
     new->key = key;
@@ -91,9 +105,9 @@ int lht_insert_element(lht_t* self, const char* key, void* value) {
  * returns a pointer to the value.
  */
 void* lht_leak_element(lht_t* self, const char* key) {
-    unsigned long i = calculate_hash(key);
+    ssize_t i = lht_get_index(self, key);
     void* value;
-    if (!self->raw[i])
+    if (i < 0)
         return NULL;
 
     value = self->raw[i]->value;
@@ -121,8 +135,9 @@ void* lht_leak_element(lht_t* self, const char* key) {
 }
 
 void* lht_get_element(lht_t* self, const char* key) {
-    unsigned long i = calculate_hash(key);
-    return (self->raw[i]) ? self->raw[i]->value : NULL;
+    ssize_t i = lht_get_index(self, key);
+
+    return (i >= 0) ? self->raw[i]->value : NULL;
 }
 
 size_t lht_get_size(lht_t* self) { return self->size; }

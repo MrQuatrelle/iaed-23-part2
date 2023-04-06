@@ -567,7 +567,7 @@ int main(void) {
             add_connection(buffer_offset);
             break;
         case 'i':
-            list_interconnections(buffer);
+            list_interconnections(buffer_offset);
             break;
         default:
             /* do nothing */

@@ -16,10 +16,13 @@ typedef struct {
     double longitude;
 } location_t;
 
+typedef struct line_node line_node_t;
+
 typedef struct {
     char name[STOP_NAME_LENGTH + 1];
     location_t locale;
     int num_lines;
+    line_node_t* head_lines;
 } stop_t;
 
 typedef struct stop_node {
@@ -38,5 +41,10 @@ typedef struct line {
     double total_duration;
     int num_stops;
 } line_t;
+
+struct line_node {
+    line_t* raw;
+    struct line_node* next;
+};
 
 #endif /* !MAIN_HEADER */
