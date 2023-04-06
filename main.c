@@ -1,5 +1,6 @@
 #include "main.h"
 #include "linked-hash-table.h"
+#include <sys/cdefs.h>
 
 lht_t* lines;
 lht_t* stops;
@@ -148,7 +149,6 @@ void list_or_add_line(char* str) {
 
     /* if the line already exists */
     if ((line = get_line(token))) {
-
         /* there is no sorting request */
         if (!(token = strtok(NULL, DELIMITERS))) {
             list_single_line(line);
@@ -286,6 +286,7 @@ void unlink_stop(line_t* line, stop_t* stop) {
         free(line->origin);
         current->cost = 0;
         current->duration = 0;
+        current->prev = NULL;
         line->origin = current;
         return;
     }
@@ -299,8 +300,7 @@ void unlink_stop(line_t* line, stop_t* stop) {
         return;
     }
 
-    /* we've already tested origin */
-    current = line->origin->next;
+    current = line->origin;
     while (current) {
         if (current->raw == stop) {
             current->next->prev = current->prev;
@@ -327,10 +327,12 @@ void remove_stop(char* str) {
     }
 
     current = lht_iter(lines, BEGIN);
+    
     while (current) {
         unlink_stop(current, stop);
         current = lht_iter(lines, KEEP);
     }
+    free(stop);
 }
 
 /*
@@ -497,6 +499,26 @@ void list_interconnections(char* str) {
     }
 }
 
+void destroy_lines() {
+    line_t* curr;
+    while ((curr = lht_pop_element(lines))) {
+        stop_dll_destroy(curr->origin);
+        free(curr);
+    }
+}
+
+void destroy_stops() {
+    stop_t* curr;
+    while ((curr = lht_pop_element(stops))) {
+        free(curr);
+    }
+}
+
+__always_inline void destroy() {
+    destroy_lines();
+    destroy_stops();
+}
+
 int main(void) {
     char *buffer, *buffer_offset;
     int exit = 0;
@@ -525,6 +547,9 @@ int main(void) {
         switch (*buffer) {
         case 'q':
             exit++;
+            /* FALLTHRU */
+        case 'a':
+            destroy();
             break;
         case 'c':
             list_or_add_line(buffer_offset);
@@ -549,6 +574,8 @@ int main(void) {
             break;
         }
     }
+    lht_destroy(lines);
+    lht_destroy(stops);
     free(buffer);
     return 0;
 }

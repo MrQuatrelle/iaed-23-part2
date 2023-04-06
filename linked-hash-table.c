@@ -25,6 +25,14 @@ lht_t* lht_init() {
     return new;
 }
 
+void lht_destroy(lht_t* self) {
+    if (!self)
+        return;
+    
+    free(self->raw);
+    free(self);
+}
+
 /*
  * hash function for a string (djb2)
  */
@@ -56,6 +64,7 @@ int lht_insert_element(lht_t* self, const char* key, void* value) {
         return -1;
     }
 
+    new->i = i;
     new->key = key;
     new->value = value;
 
@@ -88,10 +97,18 @@ void* lht_leak_element(lht_t* self, const char* key) {
         return NULL;
 
     value = self->raw[i]->value;
+    /* if it is the last */
     if (self->raw[i]->next)
         self->raw[i]->next->prev = self->raw[i]->prev;
+    else
+        self->last = self->raw[i]->prev;
+
+    /* if it is the first */
     if (self->raw[i]->prev)
         self->raw[i]->prev->next = self->raw[i]->next;
+    else
+        self->first = self->raw[i]->next;
+
     free(self->raw[i]);
     self->raw[i] = NULL;
 
@@ -116,12 +133,34 @@ size_t lht_get_size(lht_t* self) { return self->size; }
  * if used the BEGIN flag, it'll go to the beggining of the table.
  * if used the KEEP flag, it'll keep going where from it was.
  */
-void* lht_iter(lht_t* table, iter_setting setting) {
+void* lht_iter(lht_t* self, iter_setting setting) {
     lht_node_t* next;
     if (setting == KEEP)
-        next = table->lht_iterator_current->next;
+        next = self->lht_iterator_current->next;
     else
-        next = table->first;
-    table->lht_iterator_current = next;
+        next = self->first;
+    self->lht_iterator_current = next;
     return (next) ? next->value : NULL;
+}
+
+void* lht_pop_element(lht_t* self) {
+    lht_node_t* tmp;
+    void* corn; /* cus popcorn lol */
+
+    if (!self->last)
+        return NULL;
+
+    self->raw[self->last->i] = NULL;
+    corn = self->last->value;
+    tmp = self->last->prev;
+    free(self->last);
+    self->last = tmp;
+
+    self->size--;
+    if (!self->size) {
+        self->first = NULL;
+        self->last = NULL;
+    }
+
+    return corn;
 }
