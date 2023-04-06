@@ -4,7 +4,7 @@
 #include <string.h>
 
 /* just a decently large prime number */
-#define INIT_HASH 65537
+#define INIT_HASH 216091
 
 typedef struct lht_node {
     const char* key;

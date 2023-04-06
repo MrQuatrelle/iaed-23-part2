@@ -120,6 +120,11 @@ void add_new_line(const char* name) {
         return;
     }
 
+    if (!(new->name = malloc(sizeof(char) * (strlen(name) + 1)))) {
+        printf("couldn't get memory for the new line!\n");
+        fprintf(stderr, "maybe this should panic instead\n");
+        return;
+    }
     /*
      * TODO: remove the cast after changing type to void**.
      * It'll only happen after getters.
@@ -221,6 +226,12 @@ int add_new_stop(const char* name, const double latitude,
 
     if (!(new = malloc(sizeof(stop_t)))) {
         printf("couldn't get memory for the new stop!\n");
+        fprintf(stderr, "maybe this should panic instead\n");
+        return 0;
+    }
+
+    if (!(new->name = malloc(sizeof(char) * (strlen(name) + 1)))) {
+        printf("couldn't get memory for the new stop's name!\n");
         fprintf(stderr, "maybe this should panic instead\n");
         return 0;
     }
@@ -370,9 +381,9 @@ void add_line_to_stop(line_t* line, stop_t* stop) {
  * receives a string with the arguments of the command.
  */
 void add_connection(char* str) {
-    char line_name[LINE_NAME_LENGTH + 1];
-    char origin_name[STOP_NAME_LENGTH + 1];
-    char destination_name[STOP_NAME_LENGTH + 1];
+    char line_name[MAX_INPUT];
+    char origin_name[MAX_INPUT];
+    char destination_name[MAX_INPUT];
     double cost, duration;
     stop_t *origin, *destination;
     line_t* line;

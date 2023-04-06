@@ -19,7 +19,7 @@ typedef struct {
 typedef struct line_node line_node_t;
 
 typedef struct {
-    char name[STOP_NAME_LENGTH + 1];
+    char* name;
     location_t locale;
     int num_lines;
     line_node_t* head_lines;
@@ -34,7 +34,7 @@ typedef struct stop_node {
 } stop_node_t;
 
 typedef struct line {
-    char name[LINE_NAME_LENGTH + 1];
+    char* name;
     stop_node_t* origin;
     stop_node_t* destination;
     double total_cost;
