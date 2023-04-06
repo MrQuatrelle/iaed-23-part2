@@ -229,6 +229,7 @@ int add_new_stop(const char* name, const double latitude,
     new->locale.latitude = latitude;
     new->locale.longitude = longitude;
     new->num_lines = 0;
+    new->head_lines = NULL;
 
     lht_insert_element(stops, new->name, new);
     return 0;
@@ -327,12 +328,40 @@ void remove_stop(char* str) {
     }
 
     current = lht_iter(lines, BEGIN);
-    
+
     while (current) {
         unlink_stop(current, stop);
         current = lht_iter(lines, KEEP);
     }
     free(stop);
+}
+
+void add_line_to_stop(line_t* line, stop_t* stop) {
+    line_node_t* current;
+    if (!(current = stop->head_lines)) {
+        if (!(stop->head_lines = malloc(sizeof(line_node_t)))) {
+            printf("no memory.\n");
+            return;
+        }
+        stop->head_lines->raw = line;
+        stop->head_lines->next = NULL;
+        stop->num_lines++;
+        return;
+    }
+    while (1) {
+        if (current->raw == line)
+            return;
+        if (!current->next) {
+            if (!(current->next = malloc(sizeof(line_node_t)))) {
+                printf("no memory.\n");
+                return;
+            }
+            current->next->raw = line;
+            current->next->next = NULL;
+            stop->num_lines++;
+            return;
+        }
+    }
 }
 
 /*
@@ -403,8 +432,8 @@ void add_connection(char* str) {
         line->total_cost += cost;
         line->total_duration += duration;
         line->num_stops = 2;
-        origin->num_lines++;
-        destination->num_lines += (origin != destination);
+        add_line_to_stop(line, origin);
+        add_line_to_stop(line, destination);
         return;
     }
 
@@ -427,8 +456,7 @@ void add_connection(char* str) {
         tmp->duration = duration;
         line->destination->next = tmp;
         line->destination = tmp;
-        if (line->origin->raw != destination)
-            destination->num_lines++;
+        add_line_to_stop(line, destination);
     } else {
         tmp = (stop_node_t*)malloc(sizeof(stop_node_t));
         if (!tmp) {
@@ -444,7 +472,7 @@ void add_connection(char* str) {
         line->origin->duration = duration;
         line->origin->prev = tmp;
         line->origin = tmp;
-        origin->num_lines++;
+        add_line_to_stop(line, origin);
     }
 
     line->num_stops++;
@@ -457,7 +485,7 @@ void add_connection(char* str) {
  */
 void print_intersction(const stop_t* intersection) {
     int i;
-    line_t* current = lht_iter(lines, BEGIN);
+    line_node_t* current = intersection->head_lines;
     int buffer_counter = 0;
     char** buffer = (char**)malloc(sizeof(char*) * lht_get_size(lines));
     if (!buffer) {
@@ -469,9 +497,8 @@ void print_intersction(const stop_t* intersection) {
     printf("%s %d:", intersection->name, intersection->num_lines);
 
     while (current) {
-        if (intersects(current, intersection))
-            buffer[buffer_counter++] = current->name;
-        current = lht_iter(lines, KEEP);
+        buffer[buffer_counter++] = current->raw->name;
+        current = current->next;
     }
     sort(buffer, buffer_counter);
 
