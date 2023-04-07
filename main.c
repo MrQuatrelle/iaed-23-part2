@@ -10,7 +10,7 @@ lht_t* stops;
  * returns NULL if the stop doesn't exit.
  */
 __always_inline stop_t* get_stop(const char* name) {
-    return (stop_t*)lht_get_element(stops, name);
+    return (stop_t*)lht_get_entry(stops, name);
 }
 
 /*
@@ -18,7 +18,7 @@ __always_inline stop_t* get_stop(const char* name) {
  * returns NULL if it does not exist.
  */
 __always_inline line_t* get_line(const char* name) {
-    return (line_t*)lht_get_element(lines, name);
+    return (line_t*)lht_get_entry(lines, name);
 }
 
 /*
@@ -135,7 +135,7 @@ void add_new_line(const char* name) {
     new->num_stops = 0;
     new->total_cost = 0;
     new->total_duration = 0;
-    lht_insert_element(lines, new->name, new);
+    lht_insert_entry(lines, new->name, new);
 }
 
 /*
@@ -176,7 +176,7 @@ void remove_line(char* str) {
     line_t* line;
     char* name = strtok(str, DELIMITERS);
 
-    if (!(line = (line_t*)lht_leak_element(lines, name))) {
+    if (!(line = (line_t*)lht_leak_entry(lines, name))) {
         printf("%s: no such line\n", name);
         return;
     }
@@ -242,7 +242,7 @@ int add_new_stop(const char* name, const double latitude,
     new->num_lines = 0;
     new->head_lines = NULL;
 
-    lht_insert_element(stops, new->name, new);
+    lht_insert_entry(stops, new->name, new);
     return 0;
 }
 
@@ -333,7 +333,7 @@ void remove_stop(char* str) {
     if (!sscanf(str, " \"%[^\"]\"", name))
         sscanf(str, " %s", name);
 
-    if (!(stop = lht_leak_element(stops, name))) {
+    if (!(stop = lht_leak_entry(stops, name))) {
         printf("%s: no such stop.\n", name);
         return;
     }
@@ -539,7 +539,7 @@ void list_interconnections(char* str) {
 
 void destroy_lines() {
     line_t* curr;
-    while ((curr = lht_pop_element(lines))) {
+    while ((curr = lht_pop_entry(lines))) {
         stop_dll_destroy(curr->origin);
         free(curr);
     }
@@ -547,7 +547,7 @@ void destroy_lines() {
 
 void destroy_stops() {
     stop_t* curr;
-    while ((curr = lht_pop_element(stops))) {
+    while ((curr = lht_pop_entry(stops))) {
         free(curr);
     }
 }

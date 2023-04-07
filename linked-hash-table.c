@@ -5,10 +5,11 @@
 #include <sys/cdefs.h>
 #include <sys/types.h>
 
-/* TODO:
- * 1 - Delete functions (by key or all).
+/*
+ * alocates memory for an lht and initializes it.
+ * returns a pointer to the generated lht or NULL if there was any error in the
+ * process.
  */
-
 lht_t* lht_init() {
     lht_t* new = (lht_t*)malloc(sizeof(lht_t));
     int i;
@@ -16,15 +17,18 @@ lht_t* lht_init() {
         fprintf(stderr, "couldn't get memory for the new hash table!\n");
         return NULL;
     }
+    /* allocs the hash table */
     new->raw = malloc(sizeof(void*) * INIT_HASH);
     if (!new->raw) {
+        free(new);
         fprintf(stderr, "couldn't get memory for the new hash table!\n");
         return NULL;
     }
+    /* and initializes it */
     for (i = 0; i < INIT_HASH; i++) {
         new->raw[i] = NULL;
     }
-    memset(new->raw, 0, sizeof(void*) * INIT_HASH);
+    /* initializes the rest of the attributes */
     new->size = 0;
     new->capacity = INIT_HASH;
     new->first = NULL;
@@ -33,27 +37,15 @@ lht_t* lht_init() {
 }
 
 /*
- * frees
+ * frees the memory given to the lht.
+ * every entry MUST be taken out before.
+ */
 void lht_destroy(lht_t* self) {
     if (!self)
         return;
 
     free(self->raw);
     free(self);
-}
-
-/*
- * hash function for a string (djb2).
- * for collision rehashing.
- */
-size_t calculate_hash2(const char* str) {
-    unsigned long hash = 5381;
-    int c;
-
-    while ((c = *str++))
-        hash = ((hash << 5) + hash) + c;
-
-    return hash % INIT_HASH;
 }
 
 /*
@@ -65,6 +57,20 @@ size_t calculate_hash1(const char* str) {
 
     while ((c = *str++))
         hash = hash * 31 + c;
+
+    return hash % INIT_HASH;
+}
+
+/*
+ * alternative, string-based, hash function.
+ * for collision rehashing.
+ */
+size_t calculate_hash2(const char* str) {
+    unsigned long hash = 5381;
+    int c;
+
+    while ((c = *str++))
+        hash = ((hash << 5) + hash) + c;
 
     return hash % INIT_HASH;
 }
@@ -99,28 +105,34 @@ __always_inline ssize_t lht_get_index(lht_t* self, const char* key) {
     return -1;
 }
 
-void* lht_get_element(lht_t* self, const char* key) {
+/*
+ * if there is a value associated with the given key,
+ * it'll return a pointer to it.
+ * else, it'll return NULL.
+ */
+void* lht_get_entry(lht_t* self, const char* key) {
     ssize_t i = lht_get_index(self, key);
 
     return (i >= 0) ? self->raw[i]->value : NULL;
 }
 
 /*
- * insert a new element into the lht.
+ * insert a new entry into the lht.
  * key must have the same lifetime as the value (e.g. a pointer to an attribute
  * of the value).
  */
-int lht_insert_element(lht_t* self, const char* key, void* value) {
-    size_t init, i;
+int lht_insert_entry(lht_t* self, const char* key, void* value) {
+    size_t first_hash, i;
     lht_entry_t* new = malloc(sizeof(lht_entry_t));
     int round = 1;
-    init = i = (size_t)calculate_hash1(key);
+    first_hash = i = (size_t)calculate_hash1(key);
     if (!new) {
         fprintf(stderr, "couldn't get memory for the new hash table node!\n");
         return -1;
     }
+    /* jumping collisions */
     while (self->raw[i]) {
-        i = rehash(key, init, round);
+        i = rehash(key, first_hash, round);
         round++;
     }
 
@@ -151,7 +163,7 @@ int lht_insert_element(lht_t* self, const char* key, void* value) {
  * removes the entry from the given lht.
  * returns a pointer to the value.
  */
-void* lht_leak_element(lht_t* self, const char* key) {
+void* lht_leak_entry(lht_t* self, const char* key) {
     void* value;
     ssize_t i = lht_get_index(self, key);
     /* the isn't an entry associated to the given key */
@@ -172,9 +184,11 @@ void* lht_leak_element(lht_t* self, const char* key) {
     else
         self->first = self->raw[i]->next;
 
+    /* frees the allocated space */
     free(self->raw[i]);
     self->raw[i] = NULL;
 
+    /* sanity-check cleanup */
     if (--self->size == 0) {
         self->first = NULL;
         self->last = NULL;
@@ -190,7 +204,7 @@ size_t lht_get_size(lht_t* self) { return self->size; }
 
 /*
  * iterates over the given lht, according to the linking.
- * returns a pointer to the next element or NULL if it reached the end.
+ * returns a pointer to the next entry or NULL if it reached the end.
  * if used the BEGIN flag, it'll go to the beggining of the table.
  * if used the KEEP flag, it'll keep going where from it was.
  */
@@ -208,7 +222,7 @@ void* lht_iter(lht_t* self, iter_setting setting) {
  * pops the last entry of the lht, according to the linking.
  * returns NULL if the lht is empty.
  */
-void* lht_pop_element(lht_t* self) {
+void* lht_pop_entry(lht_t* self) {
     lht_entry_t* tmp;
     void* corn; /* cus popcorn lol */
 
