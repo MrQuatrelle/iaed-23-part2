@@ -59,6 +59,7 @@ void list_all_lines(void) {
     while (current) {
         printf("%s", current->name);
         if (current->origin && current->destination) {
+            /* if it has stops yet */
             printf(" %s %s", current->origin->raw->name,
                    current->destination->raw->name);
         }
@@ -78,7 +79,8 @@ void list_single_line(line_t* line) {
     if (current) {
         printf("%s", current->raw->name);
         current = current->next;
-    }
+    } else /* don't print anything */
+        return;
     while (current) {
         printf(", %s", current->raw->name);
         current = current->next;
@@ -88,8 +90,6 @@ void list_single_line(line_t* line) {
 
 /*
  * same as list_single_line() but inverted.
- * TODO: Change this for new hash table.
- * (missing getters)
  */
 void list_single_line_inverted(line_t* line) {
     stop_node_t* current = line->destination;
@@ -105,6 +105,9 @@ void list_single_line_inverted(line_t* line) {
     printf("\n");
 }
 
+/*
+ * destroys (deletes and frees) the info stored in the dll of a line.
+ */
 void stop_dll_destroy(stop_node_t* origin) {
     if (!origin)
         return;
@@ -112,6 +115,10 @@ void stop_dll_destroy(stop_node_t* origin) {
     free(origin);
 }
 
+/*
+ * adds a new line to the system.
+ * in case of errors, a message will be printed to stdin to inform the user.
+ */
 void add_new_line(const char* name) {
     line_t* new;
     if (!(new = (line_t*)malloc(sizeof(line_t)))) {
@@ -125,10 +132,8 @@ void add_new_line(const char* name) {
         fprintf(stderr, "maybe this should panic instead\n");
         return;
     }
-    /*
-     * TODO: remove the cast after changing type to void**.
-     * It'll only happen after getters.
-     */
+
+    /* add the values to the new line */
     strcpy(new->name, name);
     new->origin = NULL;
     new->destination = NULL;
@@ -172,6 +177,10 @@ void list_or_add_line(char* str) {
     add_new_line(token);
 }
 
+/*
+ * r command.
+ * removes a line from the system.
+ */
 void remove_line(char* str) {
     line_t* line;
     char* name = strtok(str, DELIMITERS);
@@ -183,9 +192,7 @@ void remove_line(char* str) {
 
     stop_dll_destroy(line->origin);
 
-    /* TODO:
-     * free(line->name);
-     */
+    free(line->name);
     free(line);
 }
 
@@ -231,11 +238,13 @@ int add_new_stop(const char* name, const double latitude,
     }
 
     if (!(new->name = malloc(sizeof(char) * (strlen(name) + 1)))) {
+        free(new);
         printf("couldn't get memory for the new stop's name!\n");
         fprintf(stderr, "maybe this should panic instead\n");
         return 0;
     }
 
+    /* adds values to the new stop */
     strcpy(new->name, name);
     new->locale.latitude = latitude;
     new->locale.longitude = longitude;
@@ -273,6 +282,9 @@ void list_or_add_stop(char* str) {
         printf("%s: stop already exists.\n", name);
 }
 
+/*
+ * parses the input of the c command.
+ */
 void get_c_input(const char* input, char* line_name, char* origin_name,
                  char* destination_name, double* cost, double* duration) {
     int ss_count = sscanf(input, "%s \"%[^\"]\" \"%[^\"]\" %lf %lf", line_name,
@@ -289,6 +301,11 @@ void get_c_input(const char* input, char* line_name, char* origin_name,
                destination_name, cost, duration);
 }
 
+/*
+ * removes a stop from a line.
+ * implies removing it from the linked list of stops and freeing the memory for
+ * the ll node.
+ */
 void unlink_stop(line_t* line, stop_t* stop) {
     stop_node_t* current;
     if (stop == line->origin->raw) {
@@ -325,6 +342,10 @@ void unlink_stop(line_t* line, stop_t* stop) {
     }
 }
 
+/*
+ * e command.
+ * removes a stop from the system.
+ */
 void remove_stop(char* str) {
     char name[MAX_INPUT];
     stop_t* stop;
@@ -347,6 +368,10 @@ void remove_stop(char* str) {
     free(stop);
 }
 
+/*
+ * adds a pointer to a line to a stop.
+ * means the line passes by this stop.
+ */
 void add_line_to_stop(line_t* line, stop_t* stop) {
     line_node_t* current;
     if (!(current = stop->head_lines)) {

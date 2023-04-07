@@ -120,6 +120,8 @@ void* lht_get_entry(lht_t* self, const char* key) {
  * insert a new entry into the lht.
  * key must have the same lifetime as the value (e.g. a pointer to an attribute
  * of the value).
+ * if an error occurs, it returns -1.
+ * if all went ok, returns 0.
  */
 int lht_insert_entry(lht_t* self, const char* key, void* value) {
     size_t first_hash, i;
