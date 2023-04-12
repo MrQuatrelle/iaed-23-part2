@@ -55,11 +55,12 @@ int intersects(const line_t* line, const stop_t* intersection) {
  * lists all lines in the system.
  */
 void list_all_lines(void) {
-    line_t* current = lht_iter(lines, BEGIN);
+    line_t* current;
+    current = lht_iter(lines, BEGIN);
     while (current) {
         printf("%s", current->name);
         if (current->origin && current->destination) {
-            /* if it has stops yet */
+            /* if it already has stops */
             printf(" %s %s", current->origin->raw->name,
                    current->destination->raw->name);
         }
@@ -307,7 +308,9 @@ void get_c_input(const char* input, char* line_name, char* origin_name,
  * the ll node.
  */
 void unlink_stop(line_t* line, stop_t* stop) {
-    stop_node_t* current;
+    stop_node_t *current, *tmp;
+    if (!line->origin || !line->destination)
+        return;
     if (stop == line->origin->raw) {
         current = line->origin->next;
         line->total_cost -= current->cost;
@@ -317,6 +320,7 @@ void unlink_stop(line_t* line, stop_t* stop) {
         current->duration = 0;
         current->prev = NULL;
         line->origin = current;
+        unlink_stop(line, stop);
         return;
     }
     if (stop == line->destination->raw) {
@@ -326,19 +330,24 @@ void unlink_stop(line_t* line, stop_t* stop) {
         free(line->destination);
         current->next = NULL;
         line->destination = current;
+        unlink_stop(line, stop);
         return;
     }
 
     current = line->origin;
     while (current) {
+        tmp = current->next;
         if (current->raw == stop) {
+            current->next->cost += current->cost;
+            current->next->duration += current->duration;
             current->next->prev = current->prev;
             current->prev->next = current->next;
             current->raw->num_lines--;
             free(current);
+            unlink_stop(line, stop);
             return;
         }
-        current = current->next;
+        current = tmp;
     }
 }
 
@@ -562,7 +571,7 @@ void list_interconnections(char* str) {
     }
 }
 
-void destroy_lines() {
+void destroy_lines(void) {
     line_t* curr;
     while ((curr = lht_pop_entry(lines))) {
         stop_dll_destroy(curr->origin);
@@ -570,14 +579,14 @@ void destroy_lines() {
     }
 }
 
-void destroy_stops() {
+void destroy_stops(void) {
     stop_t* curr;
     while ((curr = lht_pop_entry(stops))) {
         free(curr);
     }
 }
 
-__always_inline void destroy() {
+__always_inline void destroy(void) {
     destroy_lines();
     destroy_stops();
 }

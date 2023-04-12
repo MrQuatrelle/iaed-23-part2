@@ -28,7 +28,7 @@ typedef enum {
     KEEP
 } iter_setting;
 
-lht_t* lht_init();
+lht_t* lht_init(void);
 void lht_destroy(lht_t* self);
 int lht_insert_entry(lht_t* self, const char* key, void* value);
 void* lht_leak_entry(lht_t* self, const char* key);

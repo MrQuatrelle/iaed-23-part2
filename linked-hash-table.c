@@ -10,7 +10,7 @@
  * returns a pointer to the generated lht or NULL if there was any error in the
  * process.
  */
-lht_t* lht_init() {
+lht_t* lht_init(void) {
     lht_t* new = (lht_t*)malloc(sizeof(lht_t));
     int i;
     if (!new) {
@@ -174,13 +174,13 @@ void* lht_leak_entry(lht_t* self, const char* key) {
 
     value = self->raw[i]->value;
 
-    /* if it is the first */
+    /* if it is not the last */
     if (self->raw[i]->next)
         self->raw[i]->next->prev = self->raw[i]->prev;
     else
         self->last = self->raw[i]->prev;
 
-    /* if it is the last */
+    /* if it is not the first */
     if (self->raw[i]->prev)
         self->raw[i]->prev->next = self->raw[i]->next;
     else
@@ -208,7 +208,7 @@ size_t lht_get_size(lht_t* self) { return self->size; }
  * iterates over the given lht, according to the linking.
  * returns a pointer to the next entry or NULL if it reached the end.
  * if used the BEGIN flag, it'll go to the beggining of the table.
- * if used the KEEP flag, it'll keep going where from it was.
+ * if used the KEEP flag, it'll keep going from where it was.
  */
 void* lht_iter(lht_t* self, iter_setting setting) {
     lht_entry_t* next;
