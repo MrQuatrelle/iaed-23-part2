@@ -312,13 +312,14 @@ void unlink_stop(line_t* line, stop_t* stop) {
     if (!line->origin || !line->destination)
         return;
     if (stop == line->origin->raw) {
-        current = line->origin->next;
-        line->total_cost -= current->cost;
-        line->total_duration -= current->duration;
+        if((current = line->origin->next)) {
+            line->total_cost -= current->cost;
+            line->total_duration -= current->duration;
+            current->cost = 0;
+            current->duration = 0;
+            current->prev = NULL;
+        }
         free(line->origin);
-        current->cost = 0;
-        current->duration = 0;
-        current->prev = NULL;
         line->origin = current;
         unlink_stop(line, stop);
         return;
@@ -406,6 +407,7 @@ void add_line_to_stop(line_t* line, stop_t* stop) {
             stop->num_lines++;
             return;
         }
+        current = current->next;
     }
 }
 
