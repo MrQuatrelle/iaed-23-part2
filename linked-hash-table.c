@@ -1,6 +1,4 @@
 #include "linked-hash-table.h"
-#include <string.h>
-#include <sys/types.h>
 
 /*
  * alocates memory for an lht and initializes it.
