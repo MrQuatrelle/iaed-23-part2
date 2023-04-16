@@ -1,8 +1,5 @@
 #include "linked-hash-table.h"
-#include <stddef.h>
 #include <string.h>
-#include <strings.h>
-#include <sys/cdefs.h>
 #include <sys/types.h>
 
 /*
