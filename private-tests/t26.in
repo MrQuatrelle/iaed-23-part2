@@ -1,0 +1,63 @@
+p paragem1 1 1
+p paragem2 2 2
+p paragem3 3 3
+p paragem4 4 4
+c carreira1
+c carreira2
+c carreira3
+c carreira4
+l carreira1 paragem1 paragem2 1 1
+l carreira1 paragem2 paragem3 1 1
+l carreira1 paragem3 paragem4 1 1
+l carreira1 paragem4 paragem1 1 1
+l carreira1 paragem1 paragem2 1 1
+l carreira1 paragem2 paragem3 1 1
+l carreira1 paragem3 paragem4 1 1
+l carreira2 paragem1 paragem2 1 1
+l carreira2 paragem2 paragem3 1 1
+l carreira2 paragem3 paragem4 1 1
+l carreira2 paragem4 paragem1 1 1
+l carreira2 paragem1 paragem2 1 1
+l carreira2 paragem2 paragem3 1 1
+l carreira2 paragem3 paragem4 1 1
+l carreira3 paragem1 paragem2 1 1
+l carreira3 paragem2 paragem3 1 1
+l carreira3 paragem3 paragem4 1 1
+l carreira3 paragem4 paragem1 1 1
+l carreira3 paragem1 paragem2 1 1
+l carreira3 paragem2 paragem3 1 1
+l carreira3 paragem3 paragem4 1 1
+l carreira4 paragem1 paragem2 1 1
+l carreira4 paragem2 paragem3 1 1
+l carreira4 paragem3 paragem4 1 1
+l carreira4 paragem4 paragem1 1 1
+l carreira4 paragem1 paragem2 1 1
+l carreira4 paragem2 paragem3 1 1
+l carreira4 paragem3 paragem4 1 1
+c
+p
+i
+e paragem2
+c
+p
+i
+e paragem4
+c
+p
+i
+e paragem1
+c
+p
+i
+e paragem3
+c
+p
+r carreira3
+c
+r carreira4
+c
+r carreira1
+c
+r carreira2
+c
+q

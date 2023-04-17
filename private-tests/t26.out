@@ -1,0 +1,46 @@
+carreira1 paragem1 paragem4 8 7.00 7.00
+carreira2 paragem1 paragem4 8 7.00 7.00
+carreira3 paragem1 paragem4 8 7.00 7.00
+carreira4 paragem1 paragem4 8 7.00 7.00
+paragem1:   1.000000000000   1.000000000000 4
+paragem2:   2.000000000000   2.000000000000 4
+paragem3:   3.000000000000   3.000000000000 4
+paragem4:   4.000000000000   4.000000000000 4
+paragem1 4: carreira1 carreira2 carreira3 carreira4
+paragem2 4: carreira1 carreira2 carreira3 carreira4
+paragem3 4: carreira1 carreira2 carreira3 carreira4
+paragem4 4: carreira1 carreira2 carreira3 carreira4
+carreira1 paragem1 paragem4 6 7.00 7.00
+carreira2 paragem1 paragem4 6 7.00 7.00
+carreira3 paragem1 paragem4 6 7.00 7.00
+carreira4 paragem1 paragem4 6 7.00 7.00
+paragem1:   1.000000000000   1.000000000000 4
+paragem3:   3.000000000000   3.000000000000 4
+paragem4:   4.000000000000   4.000000000000 4
+paragem1 4: carreira1 carreira2 carreira3 carreira4
+paragem3 4: carreira1 carreira2 carreira3 carreira4
+paragem4 4: carreira1 carreira2 carreira3 carreira4
+carreira1 paragem1 paragem3 4 6.00 6.00
+carreira2 paragem1 paragem3 4 6.00 6.00
+carreira3 paragem1 paragem3 4 6.00 6.00
+carreira4 paragem1 paragem3 4 6.00 6.00
+paragem1:   1.000000000000   1.000000000000 4
+paragem3:   3.000000000000   3.000000000000 4
+paragem1 4: carreira1 carreira2 carreira3 carreira4
+paragem3 4: carreira1 carreira2 carreira3 carreira4
+carreira1 paragem3 paragem3 2 4.00 4.00
+carreira2 paragem3 paragem3 2 4.00 4.00
+carreira3 paragem3 paragem3 2 4.00 4.00
+carreira4 paragem3 paragem3 2 4.00 4.00
+paragem3:   3.000000000000   3.000000000000 4
+paragem3 4: carreira1 carreira2 carreira3 carreira4
+carreira1 0 0.00 0.00
+carreira2 0 0.00 0.00
+carreira3 0 0.00 0.00
+carreira4 0 0.00 0.00
+carreira1 0 0.00 0.00
+carreira2 0 0.00 0.00
+carreira4 0 0.00 0.00
+carreira1 0 0.00 0.00
+carreira2 0 0.00 0.00
+carreira2 0 0.00 0.00

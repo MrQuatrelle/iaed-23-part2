@@ -177,6 +177,37 @@ void list_or_add_line(char* str) {
     add_new_line(token);
 }
 
+void remove_line_from_stop(line_t* line, stop_t* stop) {
+    line_node_t* current;
+    current = stop->head_lines;
+    while (current) {
+        if (current->raw == line) {
+            if (!current->prev)
+                stop->head_lines = current->next;
+            else
+                current->prev->next = current->next;
+
+            if (!current->next)
+                stop->tail_lines = current->prev;
+            else
+                current->next->prev = current->prev;
+
+            stop->num_lines--;
+            free(current);
+            return;
+        }
+        current = current->next;
+    }
+}
+
+void remove_line_from_all_stops(line_t* line) {
+    stop_t* current = lht_iter(stops, BEGIN);
+    while (current) {
+        remove_line_from_stop(line, current);
+        current = lht_iter(stops, KEEP);
+    }
+}
+
 /*
  * r command.
  * removes a line from the system.
@@ -186,11 +217,13 @@ void remove_line(char* str) {
     char* name = strtok(str, DELIMITERS);
 
     if (!(line = (line_t*)lht_leak_entry(lines, name))) {
-        printf("%s: no such line\n", name);
+        printf("%s: no such line.\n", name);
         return;
     }
 
     stop_dll_destroy(line->origin);
+
+    remove_line_from_all_stops(line);
 
     free(line->name);
     free(line);
@@ -311,7 +344,7 @@ void unlink_stop(line_t* line, stop_t* stop) {
     if (!line->origin || !line->destination)
         return;
     if (stop == line->origin->raw) {
-        if((current = line->origin->next)) {
+        if ((current = line->origin->next)) {
             line->total_cost -= current->cost;
             line->total_duration -= current->duration;
             current->cost = 0;
@@ -320,6 +353,7 @@ void unlink_stop(line_t* line, stop_t* stop) {
         }
         free(line->origin);
         line->origin = current;
+        line->num_stops--;
         unlink_stop(line, stop);
         return;
     }
@@ -330,6 +364,7 @@ void unlink_stop(line_t* line, stop_t* stop) {
         free(line->destination);
         current->next = NULL;
         line->destination = current;
+        line->num_stops--;
         unlink_stop(line, stop);
         return;
     }
@@ -344,6 +379,7 @@ void unlink_stop(line_t* line, stop_t* stop) {
             current->prev->next = current->next;
             current->raw->num_lines--;
             free(current);
+            line->num_stops--;
             unlink_stop(line, stop);
             return;
         }
@@ -390,6 +426,7 @@ void add_line_to_stop(line_t* line, stop_t* stop) {
         }
         stop->head_lines->raw = line;
         stop->head_lines->next = NULL;
+        stop->head_lines->prev = NULL;
         stop->num_lines++;
         return;
     }
@@ -403,6 +440,7 @@ void add_line_to_stop(line_t* line, stop_t* stop) {
             }
             current->next->raw = line;
             current->next->next = NULL;
+            current->next->prev = current;
             stop->num_lines++;
             return;
         }

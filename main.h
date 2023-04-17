@@ -23,6 +23,7 @@ typedef struct {
     location_t locale;
     int num_lines;
     line_node_t* head_lines;
+    line_node_t* tail_lines;
 } stop_t;
 
 typedef struct stop_node {
@@ -45,6 +46,7 @@ typedef struct line {
 struct line_node {
     line_t* raw;
     struct line_node* next;
+    struct line_node* prev;
 };
 
 #endif /* !MAIN_HEADER */

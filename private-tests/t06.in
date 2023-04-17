@@ -1,0 +1,12 @@
+p paragem1 1 1
+p paragem2 2 2
+p paragem3 3 3
+p paragem4 4 4
+p
+e paragem3
+p
+e paragem4
+p
+e paragem1
+p
+q
