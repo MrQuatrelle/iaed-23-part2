@@ -89,7 +89,7 @@ void list_single_line(line_t* line) {
 }
 
 /*
- * same as list_single_line() but inverted.
+ * same as list_single_line() but prints in the opposite order.
  */
 void list_single_line_inverted(line_t* line) {
     stop_node_t* current = line->destination;
@@ -177,16 +177,21 @@ void list_or_add_line(char* str) {
     add_new_line(token);
 }
 
+/*
+ * removes the given line from the given stop, if it has it.
+ */
 void remove_line_from_stop(line_t* line, stop_t* stop) {
     line_node_t* current;
     current = stop->head_lines;
     while (current) {
         if (current->raw == line) {
+            /* in case it is the first element */
             if (!current->prev)
                 stop->head_lines = current->next;
             else
                 current->prev->next = current->next;
 
+            /* in case it is the last element */
             if (!current->next)
                 stop->tail_lines = current->prev;
             else
@@ -200,6 +205,9 @@ void remove_line_from_stop(line_t* line, stop_t* stop) {
     }
 }
 
+/*
+ * passes by all the stops and removes the given line from it, if it has it.
+ */
 void remove_line_from_all_stops(line_t* line) {
     stop_t* current = lht_iter(stops, BEGIN);
     while (current) {
@@ -221,6 +229,7 @@ void remove_line(char* str) {
         return;
     }
 
+    /* remove all the stops from the line */
     stop_dll_destroy(line->origin);
 
     remove_line_from_all_stops(line);
@@ -297,6 +306,13 @@ void list_or_add_stop(char* str) {
     char* token;
     char* name;
 
+    /*
+     * a trick to handle both cases with strtok without branching the code
+     * completely.
+     * if there isn't " in the input, the first " token is the whole input, and
+     * the second will be NULL. In this case, we still have to check if the NULL
+     * means there is no arguments or if there is ".
+     */
     strtok(str, "\"");
     if (!(name = strtok(NULL, "\""))) {
         if (!(name = strtok(str, DELIMITERS))) {
@@ -338,6 +354,7 @@ void get_c_input(const char* input, char* line_name, char* origin_name,
  * removes a stop from a line.
  * implies removing it from the linked list of stops and freeing the memory for
  * the ll node.
+ * (there must be a smarter way of doing this...)
  */
 void unlink_stop(line_t* line, stop_t* stop) {
     stop_node_t *current, *tmp;
@@ -388,6 +405,16 @@ void unlink_stop(line_t* line, stop_t* stop) {
 }
 
 /*
+ * destroys (deletes and frees) the info stored in the dll of a stop.
+ */
+void line_dll_destroy(line_node_t* origin) {
+    if (!origin)
+        return;
+    line_dll_destroy(origin->next);
+    free(origin);
+}
+
+/*
  * e command.
  * removes a stop from the system.
  */
@@ -410,6 +437,9 @@ void remove_stop(char* str) {
         unlink_stop(current, stop);
         current = lht_iter(lines, KEEP);
     }
+
+    line_dll_destroy(stop->head_lines);
+    free(stop->name);
     free(stop);
 }
 
@@ -595,7 +625,8 @@ void print_intersction(const stop_t* intersection) {
 
 /*
  * i command.
- * lists all the stops where lines intersect and those lines which intersect.
+ * lists all the stops where lines intersect and those lines which intersect for
+ * each stop (in alphabetic order).
  */
 void list_interconnections(char* str) {
     stop_t* current = lht_iter(stops, BEGIN);
@@ -610,21 +641,34 @@ void list_interconnections(char* str) {
     }
 }
 
+/*
+ * destroys (frees) all the memory reserved for lines.
+ */
 void destroy_lines(void) {
     line_t* curr;
     while ((curr = lht_pop_entry(lines))) {
         stop_dll_destroy(curr->origin);
+        free(curr->name);
         free(curr);
     }
 }
 
+/*
+ * destroys (frees) all the memory reserved for stops.
+ */
 void destroy_stops(void) {
     stop_t* curr;
     while ((curr = lht_pop_entry(stops))) {
+        line_dll_destroy(curr->head_lines);
+        free(curr->name);
         free(curr);
     }
 }
 
+/*
+ * destroys all the memory allocated for the system (except the global
+ * containers).
+ */
 __always_inline void destroy(void) {
     destroy_lines();
     destroy_stops();
